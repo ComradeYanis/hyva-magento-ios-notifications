@@ -17,7 +17,7 @@ $svgIcons = $viewModels->require(SvgIcons::class);
 
 
 <section id="hyva-ios-toasts"
-         class="hyva-toast-container"
+         class="hyva-toast-container stroke-amber-500"
          x-data="window.hyvaIosToasts()"
          x-bind="eventListeners"
          x-init="init()"
@@ -50,12 +50,12 @@ $svgIcons = $viewModels->require(SvgIcons::class);
     "use strict";
 
     window.hyvaSvgIcons = {
-        success: <?= json_encode($svgIcons->renderHtml('success_ios', 'w-5 h-5 stroke-emerald-500')) ?>,
-        error:   <?= json_encode($svgIcons->renderHtml('error_ios',   'w-5 h-5 stroke-rose-500')) ?>,
-        warning: <?= json_encode($svgIcons->renderHtml('warning_ios', 'w-5 h-5 stroke-amber-500')) ?>,
-        notice:  <?= json_encode($svgIcons->renderHtml('warning_ios', 'w-5 h-5 stroke-amber-500')) ?>,
-        info:    <?= json_encode($svgIcons->renderHtml('info_ios',    'w-5 h-5 stroke-sky-500')) ?>,
-        close:   <?= json_encode($svgIcons->renderHtml('close_ios',   'w-3.5 h-3.5 stroke-black/70')) ?>,
+        success: <?= json_encode($svgIcons->renderHtml('success_ios', 'w-5 h-5 stroke-emerald-500'), JSON_THROW_ON_ERROR) ?>,
+        error:   <?= json_encode($svgIcons->renderHtml('error_ios', 'w-5 h-5 stroke-rose-500'), JSON_THROW_ON_ERROR) ?>,
+        warning: <?= json_encode($svgIcons->renderHtml('warning_ios', 'w-5 h-5 stroke-amber-500'), JSON_THROW_ON_ERROR) ?>,
+        notice:  <?= json_encode($svgIcons->renderHtml('warning_ios', 'w-5 h-5 stroke-amber-500'), JSON_THROW_ON_ERROR) ?>,
+        info:    <?= json_encode($svgIcons->renderHtml('info_ios', 'w-5 h-5 stroke-sky-500'), JSON_THROW_ON_ERROR) ?>,
+        close:   <?= json_encode($svgIcons->renderHtml('close_ios', 'w-3.5 h-3.5 stroke-black/70'), JSON_THROW_ON_ERROR) ?>,
     };
 
     window.hyvaIosToasts = function () {
@@ -122,6 +122,7 @@ $svgIcons = $viewModels->require(SvgIcons::class);
                     const hb = header.getBoundingClientRect().bottom;
                     top = Math.max(pad, Math.min(vh - 80, hb + pad));
                 }
+                el.style.bottom = 'auto';
                 el.style.top = `${top}px`;
             },
 
@@ -129,8 +130,7 @@ $svgIcons = $viewModels->require(SvgIcons::class);
                 const id = this.nextId++;
                 this.toasts.push({ id, type, text, visible: true });
                 requestAnimationFrame(() => this.placeUnderHeader());
-                const auto = timeout ?? (type === 'success' && window.defaultSuccessMessageTimeout
-                    ? window.defaultSuccessMessageTimeout : <?= /** @noEscape */ $defaultSuccessMessageTimeout ?>);
+                const auto = timeout ?? <?= /** @noEscape */ $defaultSuccessMessageTimeout ?>;
                 if (auto > 0) setTimeout(() => this.close(id), auto);
             },
 
