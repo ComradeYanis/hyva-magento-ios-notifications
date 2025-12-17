@@ -12,7 +12,7 @@
     "email": "wot2304@gmail.com"
   }],
   "license": [
-    "see LICENSE.md"
+    "MIT"
   ],
   "autoload": {
     "files": [
