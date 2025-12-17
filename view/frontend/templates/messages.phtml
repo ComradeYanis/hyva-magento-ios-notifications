@@ -1,0 +1,171 @@
+<?php
+declare(strict_types=1);
+
+use Magento\Framework\Escaper;
+use Hyva\Theme\Model\ViewModelRegistry;
+use Hyva\Theme\ViewModel\StoreConfig;
+use ComradeYanis\HyvaIOSToasts\ViewModel\SvgIcons;
+
+/** @var Escaper $escaper */
+/** @var ViewModelRegistry $viewModels */
+/** @var StoreConfig $storeConfig */
+$storeConfig = $viewModels->require(StoreConfig::class);
+$defaultSuccessMessageTimeout = (int)$storeConfig->getStoreConfig('hyva_theme_general/messages/success_message_timeout');
+/** @var SvgIcons $svgIcons */
+$svgIcons = $viewModels->require(SvgIcons::class);
+?>
+
+
+<section id="hyva-ios-toasts"
+         class="hyva-toast-container"
+         x-data="window.hyvaIosToasts()"
+         x-bind="eventListeners"
+         x-init="init()"
+         aria-live="assertive" role="alert">
+
+    <template x-for="toast in toasts" :key="toast.id">
+        <div x-show="toast.visible"
+             x-transition:enter="ios-toast-in"
+             x-transition:leave="ios-toast-out"
+             @click="close(toast.id)"
+             class="pointer-events-auto ios-glass mb-3 w-full max-w-sm p-3 relative"
+             role="status"
+        >
+            <button type="button" class="ios-close" @click.stop="close(toast.id)" aria-label="Close">
+                <span x-html="window.hyvaSvgIcons.close"></span>
+            </button>
+
+            <div class="flex items-start gap-3">
+                <div class="mt-0.5 shrink-0" x-html="icon(toast.type)" aria-hidden="true"></div>
+
+                <div class="min-w-0 flex-1">
+                    <p class="text-sm text-black font-medium" x-text="title(toast.type)"></p>
+                    <p class="text-sm text-black mt-0.5" x-html="toast.text"></p>
+                </div>
+            </div>
+        </div>
+    </template>
+</section>
+<script>
+    "use strict";
+
+    window.hyvaSvgIcons = {
+        success: <?= json_encode($svgIcons->renderHtml('success_ios', 'w-5 h-5 stroke-emerald-500')) ?>,
+        error:   <?= json_encode($svgIcons->renderHtml('error_ios',   'w-5 h-5 stroke-rose-500')) ?>,
+        warning: <?= json_encode($svgIcons->renderHtml('warning_ios', 'w-5 h-5 stroke-amber-500')) ?>,
+        notice:  <?= json_encode($svgIcons->renderHtml('warning_ios', 'w-5 h-5 stroke-amber-500')) ?>,
+        info:    <?= json_encode($svgIcons->renderHtml('info_ios',    'w-5 h-5 stroke-sky-500')) ?>,
+        close:   <?= json_encode($svgIcons->renderHtml('close_ios',   'w-3.5 h-3.5 stroke-black/70')) ?>,
+    };
+
+    window.hyvaIosToasts = function () {
+        return {
+            messages: window.mageMessages || [],
+            toasts: [], nextId: 1,
+
+            init() {
+                this.messages.forEach(m => this.push(m));
+
+                const self = this;
+                window.hyvaToasts = {
+                    push:    p => self.push(p),
+                    success: t => self.push({ type:'success', text:t }),
+                    error:   t => self.push({ type:'error',   text:t }),
+                    warning: t => self.push({ type:'warning', text:t }),
+                    notice:  t => self.push({ type:'notice',  text:t }),
+                };
+
+                this.placeUnderHeader();
+                requestAnimationFrame(() => this.placeUnderHeader());
+                window.addEventListener('load', () => this.placeUnderHeader(), { once:true });
+
+                let ticking = false;
+                const requestRecalc = () => {
+                    if (ticking) return;
+                    ticking = true;
+                    requestAnimationFrame(() => { this.placeUnderHeader(); ticking = false; });
+                };
+                window.addEventListener('resize', requestRecalc, { passive:true });
+                window.addEventListener('scroll', requestRecalc, { passive:true });
+
+                window.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        const last = this.toasts[this.toasts.length - 1];
+                        if (last) this.close(last.id);
+                    }
+                });
+            },
+
+            eventListeners: {
+                ['@messages-loaded.window'](e) { this.addMessages(e.detail.messages, e.detail.hideAfter); },
+                ['@private-content-loaded.window'](e) {
+                    const d = e.detail.data;
+                    if (d.messages && d.messages.messages && d.messages.messages.length) {
+                        this.addMessages(d.messages.messages);
+                    }
+                },
+                ['@clear-messages.window']() { this.toasts = []; },
+            },
+
+            addMessages(msgs, hideAfter) {
+                (msgs || []).forEach(m => this.push({ type:m.type, text:m.text, timeout: hideAfter }));
+            },
+
+            placeUnderHeader() {
+                const el = document.getElementById('hyva-ios-toasts');
+                if (!el) return;
+                const header = document.querySelector('header.page-header') || document.querySelector('header');
+                const pad = 12;
+                const vh  = Math.max(320, innerHeight || document.documentElement.clientHeight);
+                let top = pad;
+                if (header) {
+                    const hb = header.getBoundingClientRect().bottom;
+                    top = Math.max(pad, Math.min(vh - 80, hb + pad));
+                }
+                el.style.top = `${top}px`;
+            },
+
+            push({ type='notice', text='', timeout }) {
+                const id = this.nextId++;
+                this.toasts.push({ id, type, text, visible: true });
+                requestAnimationFrame(() => this.placeUnderHeader());
+                const auto = timeout ?? (type === 'success' && window.defaultSuccessMessageTimeout
+                    ? window.defaultSuccessMessageTimeout : <?= /** @noEscape */ $defaultSuccessMessageTimeout ?>);
+                if (auto > 0) setTimeout(() => this.close(id), auto);
+            },
+
+            close(id) {
+                const t = this.toasts.find(x => x.id === id);
+                if (t) t.visible = false;
+                setTimeout(() => this.toasts = this.toasts.filter(x => x.id !== id), 200);
+            },
+
+            title(type) {
+                switch (type) {
+                    case 'success':
+                        return 'Success';
+                    case 'error':
+                        return 'Error';
+                    case 'warning':
+                        return 'Warning';
+                    default:
+                        return 'Notice';
+                }
+            },
+
+            icon(type) {
+                switch (type) {
+                    case 'success':
+                        return window.hyvaSvgIcons.success;
+                    case 'error':
+                        return window.hyvaSvgIcons.error;
+                    case 'warning':
+                    case 'notice':
+                        return window.hyvaSvgIcons.warning;
+                    default:
+                        return window.hyvaSvgIcons.info;
+                }
+            },
+        }
+    };
+</script>

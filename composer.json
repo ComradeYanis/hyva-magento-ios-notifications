@@ -1,0 +1,25 @@
+{
+  "name": "comradeyanis/hyva-magento-ios-notifications",
+  "version": "1.0.0",
+  "description": "Small module that replaced old boring Magento customer web notifications with new designed IOS 26 notification with effect of \"Luquid Glass\".",
+  "type": "magento2-module",
+  "require": {
+    "magento/framework": "*",
+    "hyva-themes/magento2-theme-module": "^1.0"
+  },
+  "author": [{
+    "name": "Yanis Yeltsyn",
+    "email": "wot2304@gmail.com"
+  }],
+  "license": [
+    "see LICENSE.md"
+  ],
+  "autoload": {
+    "files": [
+      "registration.php"
+    ],
+    "psr-4": {
+      "ComradeYanis\\HyvaIOSToasts\\": ""
+    }
+  }
+}
